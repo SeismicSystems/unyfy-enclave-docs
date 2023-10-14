@@ -1,8 +1,6 @@
-# Full Next.js example
+# Elliptic Unyfy Enclave Docs
 
-This is a full-featured boilerplate for a creating a documentation website using Markdoc and Next.js.
-
-<img width="2032" alt="image" src="https://user-images.githubusercontent.com/62121649/174916143-16f18270-0463-402c-8b48-33c627ea7a7e.png">
+This is the source code for the client-facing documentation for interacting with Elliptic's secure enclave, which is part of the larger on-chain dark pool being built by Elliptic with Unyfy.
 
 ## Setup
 
