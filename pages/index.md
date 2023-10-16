@@ -28,6 +28,55 @@ socket.addEventListener('message', function (event) {
     console.log('Message from server ', event.data);
 });
 ```
+### Authentication
+
+To authenticate with the API, you first need to request a token from a separate REST API endpoint. This token should be used within 15 minutes of creation. This token needs to be provided whenever you are subscribing to a private WebSocket feed.
+
+Here is an example of how to request a token using JavaScript:
+
+```javascript
+fetch('https://your-api-endpoint.com/token', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + your_api_key
+  }
+})
+.then(response => response.json())
+.then(data => {
+  const token = data.token;
+  // Use the token to authenticate with the WebSocket API
+});
+```
+
+### Subscription
+**Request.** To subscribe to a feed, you need to send a message to the server after establishing a connection. The message should be a JSON object with an `action` property set to `subscribe`, a `feed` property set to the name of the feed you want to subscribe to, and a `token` property set to the authentication token you received from the REST API endpoint.
+
+Here is an example of how to subscribe to the 'openorders' feed using JavaScript:
+
+```javascript
+const subscription = {
+  action: 'subscribe',
+  feed: 'openorders',
+  token: 'your_auth_token'
+};
+
+socket.send(JSON.stringify(subscription));
+```
+
+In this example, we are subscribing to the 'openorders' feed. The server will start sending messages for the 'openorders' feed as soon as the subscription is successful.
+
+The payload for the 'openorders' feed subscription is as follows:
+
+**Payload:**
+ Field   | Type    | Description                                                                                     
+---------|---------|-------------------------------------------------------------------------------------------------
+ `action`| `string`| The action being performed, "subscribe".                                                       
+ `feed`  | `string` | The name of the feed to subscribe to, in this case 'openorders'.                              
+ `token` | `string` | The authentication token received from the REST API endpoint.                                 
+
+
+
 
 
 ### Orders
@@ -40,6 +89,7 @@ socket.addEventListener('message', function (event) {
  Field                         |  Type     | Description                                                                                     
 -------------------------------|---------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------:
  `action`                      | `string` | The action to be performed, "sendorder".                                                        
+ `orderID`                     | `string` | The unique identifier of the order from the client's perspective.
  `data`                        | `object` | The order data.                                                                                 
  &nbsp;&nbsp;`transparent`     | `object` | The transparent structure of the order.                                                         
  &nbsp;&nbsp;&nbsp;&nbsp;`side`| `number` | Side of the order, 0 for bid, 1 for ask.                                                        
@@ -51,14 +101,12 @@ socket.addEventListener('message', function (event) {
  &nbsp;&nbsp;&nbsp;&nbsp;`accessKey` | `string` | Access key: protects from brute force attacks, revealed to counterparties
 
 
-
-
-
 Example of payload:
 
 ```javascript
 {
   "action": "sendorder",
+  "orderID": "ord_123",
   "data": {
     "transparent": {
       "side": 0,
@@ -80,6 +128,22 @@ Example of payload:
 
 **Response.** Server's response after receiving a client's order through through ```sendorder```. The server returns an enclave signature. 
 
+**Payload:**
+ Field                         |  Type     | Description                                                                                     
+-------------------------------|---------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------:
+ `action`                      | `string` | The action to be performed, "getenclavesignature".                                                        
+ `orderID`                     | `string` | The unique identifier of the order from the client's perspective.                                                                                 
+ `enclaveSignature`            | `string` | The enclave signature of the order.                                                        
+
+Example of payload:
+
+```javascript
+{
+  "action": "getenclavesignature",
+  "orderID": "order12345",
+  "enclaveSignature": "enclave_signature_value"
+}
+```
 
 #### getcrossedorders
 
