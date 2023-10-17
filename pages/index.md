@@ -151,31 +151,34 @@ Example of payload:
 **Payload:**
  Field                         |  Type     | Description                                                                                     
 -------------------------------|---------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------:
- `action`                      | `string` | The action to be performed, "getenclavesignature".                                                                                                                   
- `enclaveSignature`            | `string` | The enclave signature of the order.                                  
- 
- `orderCommitment`             | `object` | The orderCommitment that the enclave signs.                                                                                                                    
- &nbsp;&nbsp;`transparent`     | `object` | The transparent part of the order, includes side, token, denomination.                                                        
- &nbsp;&nbsp;&nbsp;&nbsp;`side`| `number` | Side of the order, 0 for bid, 1 for ask.                                                        
- &nbsp;&nbsp;&nbsp;&nbsp;`token` | `string` | Token address for the target project.                                                           
- &nbsp;&nbsp;&nbsp;&nbsp;`denomination` | `string` | Either the token address or USDC or ETH (set to 0x1 for this case).              
- &nbsp;&nbsp;`shielded`        | `string` | The shielded part of the order commitment (hash of shielded part of the raw order.)
+ `action`                      | `string` | The action to be performed, "getenclavesignature".                                                        
+ `enclavesignature`                        | `object` | The enclave signature of the order.                                                                                 
+ &nbsp;&nbsp;`orderCommitment`     | `object` | The order commitment that the enclave signs.                                                         
+ &nbsp;&nbsp;&nbsp;&nbsp;`transparent`| `object` | Transparent portion of the order commitment.           
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`side`| `number` | Side of the order, 0 for bid, 1 for ask.                                              
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`token` | `string` | Token address for the target project.                                                           
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`denomination` | `string` | Either the token address or USDC or ETH (set to 0x1 for this case).              
+ &nbsp;&nbsp;&nbsp;&nbsp;`shielded`         | `string` | The shielded structure of the order commitment, i.e. the hash of the shielded portion of the raw order.
+ &nbsp;&nbsp;`signatureValue`     | `string` | The signature value.                                                            
+
 
 Example of payload:
 
 ```javascript
 {
   "action": "getenclavesignature",
-    "enclaveSignature": "enclave_signature_value",
+    "enclaveSignature": {,
     "orderCommitment": {
       "transparent": {
         "side": 0,
         "token": "token_address",
         "denomination": "0x1"
       },
-      "shielded": "hash_of_shielded_part_of_order"
-    }
+      "shielded": "hash_of_shielded_part_of_raw_order"
+    },
+    "signatureValue": "signature_value"
   }
+}
 ```
 
 #### getcrossedorders
@@ -194,11 +197,10 @@ Example of payload:
 ```javascript
 {
   "action": "getcrossedorders",
-  "hash": "hashxyz",
+  "hash": "order12345",
   "orders": [
     {
-      "orderId": "crossedOrder123",
-      "orderCommitment": "commitment_value_1",
+      "hash": "crossedOrder123",
       "timestamp": 1678901234567,
       "transparent": {
         "side": 0,
@@ -212,8 +214,7 @@ Example of payload:
       }
     },
     {
-      "orderId": "crossedOrder124",
-      "orderCommitment": "commitment_value_2",
+      "hash": "crossedOrder124",
       "timestamp": 1678901234578,
       "transparent": {
         "side": 1,
@@ -246,7 +247,7 @@ Example of payload:
   "action": "orderhistory",
   "orders": [
     {
-      "orderId": "order12345",
+      "hash": "order12345",
       "timestamp": 1678901234567,
       "status": "matched",
       "transparent": {
@@ -261,7 +262,7 @@ Example of payload:
       }
     },
     {
-      "orderId": "order12346",
+      "hash": "order12346",
       "timestamp": 1678901234578,
       "status": "unmatched",
       "transparent": {
@@ -286,7 +287,8 @@ Example of payload:
 | Field   | Type    | Description                                                                                     |
 |---------|---------|-------------------------------------------------------------------------------------------------|
 | `action`| `string`| The action being performed, "openorders".                                                       |
-| `orders`| `array` | An array of open order objects. Each object contains details of the order.                      |
+| `orders`| `array` | An array of open order objects. Each object contains details of the order.        
+                
 
 Example of payload:
 ```javascript
@@ -294,7 +296,7 @@ Example of payload:
   "action": "openorders",
   "orders": [
     {
-      "orderId": "order12345",
+      "hash": "order12345",
       "timestamp": 1678901234567,
       "transparent": {
         "side": 0,
@@ -308,7 +310,7 @@ Example of payload:
       }
     },
     {
-      "orderId": "order12346",
+      "hash": "order12346",
       "timestamp": 1678901234578,
       "transparent": {
         "side": 1,
