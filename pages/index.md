@@ -17,7 +17,7 @@ The API utilizes Amazon API Gateway to direct incoming requests to backend EC2 i
 
 To initiate a connection to the API, employ the command below. Once connected, API Gateway will trigger a route that captures and records your unique connection ID.
 
-\```javascript
+```javascript
 const socket = new WebSocket('wss://abcdef123.execute-api.us-west-2.amazonaws.com/production');
 
 socket.addEventListener('open', function (event) {
@@ -35,7 +35,7 @@ socket.addEventListener('message', function (event) {
         // Subsequently, sign the challenge and transmit the authentication payload.
     }
 });
-\```
+```
 
 ### Authentication with Ethereum Public Key
 
@@ -46,7 +46,7 @@ On obtaining the challenge:
 1. Sign it employing your Ethereum wallet.
 2. Return the signed challenge along with your Ethereum public key to the server via the WebSocket connection.
 
-\```javascript
+```javascript
 const web3 = new Web3(/* Your web3 provider here */);
 const challenge = "ReceivedChallengeFromServer";  // Swap with the actual received challenge
 const ethereum_public_key = "YOUR_ETHEREUM_PUBLIC_KEY";  // Amend with your Ethereum public key
@@ -66,9 +66,9 @@ web3.eth.personal.sign(challenge, ethereum_public_key, null, (error, signature) 
         socket.close();
     }
 });
-\```
+```
 
-### Timeout Mechanism
+### Connection Timeout
 
 It's imperative to respond to the challenge within a stipulated time frame to ensure prompt authentication. A 5-minute window is provided post the challenge issuance. If the authentication payload (signed message and public key) isn't received within this span, the server will terminate the connection.
 
