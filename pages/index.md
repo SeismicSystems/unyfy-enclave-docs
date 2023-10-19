@@ -338,8 +338,8 @@ A connected client will be notified of new orders that cross any of their open o
 **Publication Payload:**
 | Field   | Type    | Description                                                                                     |
 |---------|---------|-------------------------------------------------------------------------------------------------|
-| `orderCommitment`             | `object` | Contains the order commitment details.                                                    |
-| `orders`| `array` | An array of open order objects. Each object contains details of the order.   
+| `orderCommitment`             | `object` | Contains the order commitment details for the order.                                                    |
+| `orders`| `array` | An array of crossed order objects. Each object contains details of the order.   
 
 **Order Object:**
 
