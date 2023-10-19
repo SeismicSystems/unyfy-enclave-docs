@@ -83,7 +83,20 @@ A client can request all open orders associated with their Ethereum public key:
 | Field   | Type    | Description                                                                                     |
 |---------|---------|-------------------------------------------------------------------------------------------------|
 | `action`| `string`| The action being performed, "openorders".                                                       |
-| `orders`| `array` | An array of open order objects. Each object contains details of the order.        
+| `orders`| `array` | An array of open order objects. Each object contains details of the order.      
+
+**Order Object:**
+
+Each order object in the `orders` array has the following structure:
+
+| Field                         |  Type     | Description                                                                                     
+|-------------------------------|---------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------:
+| `orderCommitment`             | `object` | Contains the order commitment details.                                                                                 
+| &nbsp;&nbsp;`transparent`     | `object` | Contains transparent details of the order.                                                         
+| &nbsp;&nbsp;&nbsp;&nbsp;`side`| `number` | Side of the order, 0 for bid, 1 for ask.                                                        
+| &nbsp;&nbsp;&nbsp;&nbsp;`token` | `string` | Token address for the target project.                                                           
+| &nbsp;&nbsp;&nbsp;&nbsp;`denomination` | `string` | Either the token address or USDC or ETH (set to 0x1 for this case).              
+| &nbsp;&nbsp;`shielded`         | `string` | The shielded structure of the order commitment, i.e. the hash of the shielded portion of the raw order.
 
 **Example Request Payload:**
 ```javascript
@@ -100,31 +113,45 @@ socket.send(JSON.stringify(req));
   "action": "openorders",
   "orders": [
     {
-      "hash": "order12345",
+    "orderCommitment": {
+      "transparent": {
+        "side": 1,
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
+        "denomination": "0x1"
+      },
+      "shielded": "0x4e3c3e3e4c3d4b4c5b5a5b5c6d6e6f7e8a8b8c9d1a1b1c2d3e4f5g6h7i8j9k0l1m2"
+    },
       "timestamp": 1678901234567,
       "transparent": {
-        "side": 0,
-        "token": "token_address_1",
+        "side": 1,
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
         "denomination": "0x1"
       },
       "shielded": {
         "price": 1000000000,
-        "volume": 1000000000,
-        "accessKey": "access_key_1"
+        "volume": 500000000,
+        "accessKey": "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0" 
       }
     },
     {
-      "hash": "order12346",
+      "orderCommitment": {
+      "transparent": {
+        "side": 0,
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
+        "denomination": "0x1"
+      },
+      "shielded": "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c"
+    },
       "timestamp": 1678901234578,
       "transparent": {
-        "side": 1,
-        "token": "token_address_2",
+        "side": 0,
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
         "denomination": "0x1"
       },
       "shielded": {
-        "price": 1100000000,
-        "volume": 900000000,
-        "accessKey": "access_key_2"
+        "price": 1000000000,
+        "volume": 500000000,
+        "accessKey": "0xe123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0"
       }
     }
   ]
@@ -132,7 +159,7 @@ socket.send(JSON.stringify(req));
 ```
 
 ### Placing an Order
-A client can send raw order (```O```) to the server, server responds with an enclave signature (σ) of the corresponding commitment (```\bar O```).
+A client can send raw order (```O```) to the server, server responds with an enclave signature (σ) of the corresponding commitment (```Ō```).
 
 **Request Payload:**
  Field                         |  Type     | Description                                                                                     
@@ -147,7 +174,7 @@ A client can send raw order (```O```) to the server, server responds with an enc
  &nbsp;&nbsp;&nbsp;&nbsp;`price` | `number` | Price, in `denomination`. Scaled by 10^9 but only has 10^7 precision.                           
  &nbsp;&nbsp;&nbsp;&nbsp;`volume` | `number` | Volume: amount of token to exchange. Scaled by 10^9.                                            
  &nbsp;&nbsp;&nbsp;&nbsp;`accessKey` | `string` | Access key: protects from brute force attacks, revealed to counterparties
- `hash`                        | `string` | Hash of the shielded portion of the order, which forms the shielded portion of the order commitment.
+ `hash`                        | `string` | Hash of the shielded portion of the order, which forms the shielded portion of the order commitment, i.e. hash of the `shielded` object above.
 
 **Response Payload:**
  Field                         |  Type     | Description                                                                                     
@@ -159,7 +186,7 @@ A client can send raw order (```O```) to the server, server responds with an enc
  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`side`| `number` | Side of the order, 0 for bid, 1 for ask.                                              
  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`token` | `string` | Token address for the target project.                                                           
  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`denomination` | `string` | Either the token address or USDC or ETH (set to 0x1 for this case).              
- &nbsp;&nbsp;&nbsp;&nbsp;`shielded`         | `string` | The shielded structure of the order commitment, i.e. the hash of the shielded portion of the raw order.
+ &nbsp;&nbsp;&nbsp;&nbsp;`shielded`         | `string` | The shielded structure of the order commitment, i.e. the hash of the shielded portion of the raw order
  &nbsp;&nbsp;`signatureValue`     | `string` | The signature value.
 
 **Example Request Payload:**
@@ -169,16 +196,16 @@ const req = {
   "data": {
     "transparent": {
       "side": 0,
-      "token": "token_address", 
+      "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B", 
       "denomination": "0x1"
     },
     "shielded": {
       "price": 1000000000,
       "volume": 1000000000,
-      "accessKey": "access_key"
+      "accessKey": "0x2a014355bdfe814d5f7c315b4e8b10c5a3446452c5c8d0593b9c59b7648fe3ed"
     }
-  }
-  "hash": "hash_of_shielded_portion_of_order"
+  },
+  "hash": "0x3d2b7e3d8a2e9409b878ba8dcfb9e9a9ebe0df7e7a3a2a918a6804d1b3cd4c19"
 };
 
 socket.send(JSON.stringify(req));
@@ -188,41 +215,61 @@ socket.send(JSON.stringify(req));
 ```javascript
 {
   "action": "sendorder",
-  "enclaveSignature": {,
+  "enclaveSignature": {
     "orderCommitment": {
       "transparent": {
         "side": 0,
-        "token": "token_address",
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
         "denomination": "0x1"
       },
-      "shielded": "hash_of_shielded_part_of_raw_order"
+      "shielded": "0x3d2b7e3d8a2e9409b878ba8dcfb9e9a9ebe0df7e7a3a2a918a6804d1b3cd4c19"
     },
-    "signatureValue": "signature_value"
+    "signatureValue": "0x2a014355bdfe814d5f7c315b4e8b10c5a3446452c5c8d0593b9c59b7648fe3ed"
   }
 }
 ```
 
-#### Getting Crossed Orders
-A client can request the orders that cross with an owned order commitment (```\bar O```). We use the order commitment as a unique identifier for the order.
+### Getting Crossed Orders
+A client can request the orders that cross with an owned order commitment (Ō). We use the order commitment as a unique identifier for the order.
 
 **Request Payload:**
 | Field                | Type    | Description                                                                                     |
 |----------------------|---------|-------------------------------------------------------------------------------------------------|
 | `action`             | `string`| The action being performed, "getcrossedorders".                                                |
-| `\bar O` | `object`| Order commitment to get crossed orders for.                 |
+| `orderCommitment` | `object`| Order commitment to get crossed orders for.                 |
 
 **Response Payload:**
 | Field                | Type    | Description                                                                                     |
 |----------------------|---------|-------------------------------------------------------------------------------------------------|
 | `action`             | `string`| The action being performed, "getcrossedorders".                                                |
-| `\bar O` | `object`| Order commitment for which the following orders array are crossed.                  |
+| `orderCommitment` | `object`| Order commitment for which the following orders array are crossed.                  |
 | `orders`             | `array` | An array of crossed order objects. Each object contains details of the order.                   |
+
+**Order Object:**
+
+Each order object in the `orders` array has the following structure:
+
+| Field                         |  Type     | Description                                                                                     
+|-------------------------------|---------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------:
+| `orderCommitment`             | `object` | Contains the order commitment details.                                                                                 
+| &nbsp;&nbsp;`transparent`     | `object` | Contains transparent details of the order.                                                         
+| &nbsp;&nbsp;&nbsp;&nbsp;`side`| `number` | Side of the order, 0 for bid, 1 for ask.                                                        
+| &nbsp;&nbsp;&nbsp;&nbsp;`token` | `string` | Token address for the target project.                                                           
+| &nbsp;&nbsp;&nbsp;&nbsp;`denomination` | `string` | Either the token address or USDC or ETH (set to 0x1 for this case).              
+| &nbsp;&nbsp;`shielded`         | `string` | The shielded structure of the order commitment, i.e. the hash of the shielded portion of the raw order.
 
 **Example Request Payload**
 ```javascript
 {
   "action": "getcrossedorders",
-  "\bar O": "TODO"
+  "orderCommitment": {
+      "transparent": {
+        "side": 0,
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
+        "denomination": "0x1"
+      },
+      "shielded": "0x3d2b7e3d8a2e9409b878ba8dcfb9e9a9ebe0df7e7a3a2a918a6804d1b3cd4c19"
+    }
 }
 ```
 
@@ -230,45 +277,139 @@ A client can request the orders that cross with an owned order commitment (```\b
 ```javascript
 {
   "action": "getcrossedorders",
-  "\bar O": "TODO",
-  "orders": [
-    {
-      "hash": "crossedOrder123",
-      "timestamp": 1678901234567,
+  "orderCommitment": {
       "transparent": {
         "side": 0,
-        "token": "token_address_1",
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
+        "denomination": "0x1"
+      },
+      "shielded": "0x3d2b7e3d8a2e9409b878ba8dcfb9e9a9ebe0df7e7a3a2a918a6804d1b3cd4c19"
+    },
+  "orders": [
+    {
+      "orderCommitment": {
+      "transparent": {
+        "side": 1,
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
+        "denomination": "0x1"
+      },
+      "shielded": "0x4e3c3e3e4c3d4b4c5b5a5b5c6d6e6f7e8a8b8c9d1a1b1c2d3e4f5g6h7i8j9k0l1m2"
+    },
+      "timestamp": 1678901234567,
+      "transparent": {
+        "side": 1,
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
         "denomination": "0x1"
       },
       "shielded": {
         "price": 1000000000,
-        "volume": 1000000000,
-        "accessKey": "access_key_1"
+        "volume": 500000000,
+        "accessKey": "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0" 
       }
     },
     {
-      "hash": "crossedOrder124",
+      "orderCommitment": {
+      "transparent": {
+        "side": 1,
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
+        "denomination": "0x1"
+      },
+      "shielded": "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c"
+    },
       "timestamp": 1678901234578,
       "transparent": {
         "side": 1,
-        "token": "token_address_2",
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
         "denomination": "0x1"
       },
       "shielded": {
-        "price": 1100000000,
-        "volume": 900000000,
-        "accessKey": "access_key_2"
+        "price": 1000000000,
+        "volume": 500000000,
+        "accessKey": "0xe123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0"
       }
     }
   ]
 }
 ```
 
-#### Notification of New Crossed Orders
+### Notification of New Crossed Orders
 A connected client will be notified of new orders that cross any of their open orders. 
 
 **Publication Payload:**
-TODO
+| Field   | Type    | Description                                                                                     |
+|---------|---------|-------------------------------------------------------------------------------------------------|
+| `orderCommitment`             | `object` | Contains the order commitment details.                                                    |
+| `orders`| `array` | An array of open order objects. Each object contains details of the order.   
+
+**Order Object:**
+
+Each order object in the `orders` array has the following structure:
+
+| Field                         |  Type     | Description                                                                                     
+|-------------------------------|---------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------:
+| `orderCommitment`             | `object` | Contains the order commitment details.                                                                                 
+| &nbsp;&nbsp;`transparent`     | `object` | Contains transparent details of the order.                                                         
+| &nbsp;&nbsp;&nbsp;&nbsp;`side`| `number` | Side of the order, 0 for bid, 1 for ask.                                                        
+| &nbsp;&nbsp;&nbsp;&nbsp;`token` | `string` | Token address for the target project.                                                           
+| &nbsp;&nbsp;&nbsp;&nbsp;`denomination` | `string` | Either the token address or USDC or ETH (set to 0x1 for this case).              
+| &nbsp;&nbsp;`shielded`         | `string` | The shielded structure of the order commitment, i.e. the hash of the shielded portion of the raw order.
+
 
 **Example Publication Payload:**
-TODO
+```javascript
+{
+
+  "orderCommitment": {
+      "transparent": {
+        "side": 0,
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
+        "denomination": "0x1"
+      },
+      "shielded": "0x3d2b7e3d8a2e9409b878ba8dcfb9e9a9ebe0df7e7a3a2a918a6804d1b3cd4c19"
+    },
+  "orders": [
+    {
+      "orderCommitment": {
+      "transparent": {
+        "side": 1,
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
+        "denomination": "0x1"
+      },
+      "shielded": "0x4e3c3e3e4c3d4b4c5b5a5b5c6d6e6f7e8a8b8c9d1a1b1c2d3e4f5g6h7i8j9k0l1m2"
+    },
+      "timestamp": 1678901234567,
+      "transparent": {
+        "side": 1,
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
+        "denomination": "0x1"
+      },
+      "shielded": {
+        "price": 1000000000,
+        "volume": 500000000,
+        "accessKey": "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0" 
+      }
+    },
+    {
+      "orderCommitment": {
+      "transparent": {
+        "side": 1,
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
+        "denomination": "0x1"
+      },
+      "shielded": "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c"
+    },
+      "timestamp": 1678901234578,
+      "transparent": {
+        "side": 1,
+        "token": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
+        "denomination": "0x1"
+      },
+      "shielded": {
+        "price": 1000000000,
+        "volume": 500000000,
+        "accessKey": "0xe123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0"
+      }
+    }
+  ]
+}
+```
