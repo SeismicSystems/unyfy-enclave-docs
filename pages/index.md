@@ -5,31 +5,31 @@ description: This document provides an overview and instructions on how to inter
 
 ## Overview
 
-The Elliptic Enclave API is a WebSocket API that allows clients to interact with the enclave used for Elliptic's on-chain dark pool solution. This document provides detailed information on how to establish a connection, send messages, and place orders using this API.
+Unyfy's clients can communicate with Elliptic via a WebSocket API. This document provides detailed information on how to establish a connection, send requests, and subscribe to feeds using this API.
 
 ## Connecting and Authenticating a Client
 
-The API utilizes Amazon API Gateway to direct incoming requests to backend EC2 instances. These instances operate using Nitro Enclaves and are orchestrated by Amazon EKS.
+The API utilizes Amazon API Gateway to direct incoming requests to Nitro enclaves.
 
 ### Acquiring JWT
 
-Before establishing a WebSocket connection, a JWT (JSON Web Token) needs to be acquired by verifying the ownership of an Ethereum public key through a separate REST API. The following steps outline the process of obtaining a JWT:
+Before establishing a WebSocket connection, a JWT (JSON Web Token) needs to be acquired by verifying the ownership of an Ethereum public key with funds deposited in the contract. The following steps outline the process of obtaining a JWT:
 
 1. **Request Challenge**:
-    - The client sends a request to the server to initiate the challenge-response mechanism.
-    - The server generates a unique challenge and associates it with the client’s session.
+  - The client sends a request to the issuing server to initiate the challenge-response mechanism.
+  - The server generates a unique challenge.
 
 ```javascript
 const axios = require('axios');
 
 async function requestChallenge(ethPublicKey) {
-    const response = await axios.post('https://jwt-issuer.example.com/request-challenge', {
+    const response = await axios.post(env['ISSUING_SERVER_ENDPOINT'], {
         ethPublicKey: ethPublicKey
     });
     return response.data.challenge;
 }
 
-const ethPublicKey = 'your-ethereum-public-key-here';
+const ethPublicKey = env['YOUR_ETH_PUBKEY'];
 requestChallenge(ethPublicKey).then(challenge => {
     console.log('Received challenge:', challenge);
 });
@@ -43,7 +43,7 @@ const Web3 = require('web3');
 const web3 = new Web3(/* Your web3 provider here */);
 
 async function signChallenge(challenge) {
-    const account = web3.eth.accounts.privateKeyToAccount('your-ethereum-private-key-here');
+    const account = web3.eth.accounts.privateKeyToAccount(env['YOUR_ETH_PRIVKEY']);
     const signature = await account.sign(challenge);
     return signature.signature;
 }
@@ -51,12 +51,11 @@ async function signChallenge(challenge) {
 
 3. **Verify Challenge and Obtain JWT**:
   - The client sends the signed challenge back to the server.
-  - The server verifies the signature using the Ethereum public key.
+  - The server verifies 1) the signature corresponds to the claimed public key and 2) the public key has funds deposited in the contract.
   - If the verification is successful, the server issues a JWT to the client.
 ```javascript
 async function getJWT(signedChallenge) {
     const response = await axios.post('https://jwt-issuer.example.com/verify-challenge', {
-        ethPublicKey: ethPublicKey,
         signedChallenge: signedChallenge
     });
     return response.data.token;
@@ -86,7 +85,7 @@ const socket = new WebSocket('wss://abcdef123.execute-api.us-west-2.amazonaws.co
 socket.addEventListener('open', function (event) {
     console.log('Connected');
     // Authenticate the connection using the JWT
-    socket.send(JSON.stringify({ action: "authenticate", token: yourJWTTokenHere }));
+    socket.send(JSON.stringify({ action: "authenticate", token: /* yourJWTTokenHere */ }));
 });
 
 socket.addEventListener('message', function (event) {
