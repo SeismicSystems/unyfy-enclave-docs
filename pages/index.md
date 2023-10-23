@@ -9,64 +9,92 @@ The Elliptic Enclave API is a WebSocket API that allows clients to interact with
 
 ## Connecting and Authenticating a Client
 
-The API utilizes Amazon API Gateway to direct incoming requests to backend EC2 instances. These instances operate using Nitro enclaves and are orchestrated by Amazon EKS. 
+The API utilizes Amazon API Gateway to direct incoming requests to backend EC2 instances. These instances operate using Nitro Enclaves and are orchestrated by Amazon EKS.
 
-### Establishing a Connection
+### Acquiring JWT
 
-To initiate a connection to the API, employ the command below. Once connected, API Gateway will trigger a route that captures and records your unique connection ID.
+Before establishing a WebSocket connection, a JWT (JSON Web Token) needs to be acquired by verifying the ownership of an Ethereum public key through a separate REST API. The following steps outline the process of obtaining a JWT:
+
+1. **Request Challenge**:
+    - The client sends a request to the server to initiate the challenge-response mechanism.
+    - The server generates a unique challenge and associates it with the client’s session.
+
+```javascript
+const axios = require('axios');
+
+async function requestChallenge(ethPublicKey) {
+    const response = await axios.post('https://jwt-issuer.example.com/request-challenge', {
+        ethPublicKey: ethPublicKey
+    });
+    return response.data.challenge;
+}
+
+const ethPublicKey = 'your-ethereum-public-key-here';
+requestChallenge(ethPublicKey).then(challenge => {
+    console.log('Received challenge:', challenge);
+});
+```
+
+2. **Sign Challenge**:
+  - The client signs the challenge using their Ethereum private key.
+
+```javascript 
+const Web3 = require('web3');
+const web3 = new Web3(/* Your web3 provider here */);
+
+async function signChallenge(challenge) {
+    const account = web3.eth.accounts.privateKeyToAccount('your-ethereum-private-key-here');
+    const signature = await account.sign(challenge);
+    return signature.signature;
+}
+```
+
+3. **Verify Challenge and Obtain JWT**:
+  - The client sends the signed challenge back to the server.
+  - The server verifies the signature using the Ethereum public key.
+  - If the verification is successful, the server issues a JWT to the client.
+```javascript
+async function getJWT(signedChallenge) {
+    const response = await axios.post('https://jwt-issuer.example.com/verify-challenge', {
+        ethPublicKey: ethPublicKey,
+        signedChallenge: signedChallenge
+    });
+    return response.data.token;
+}
+
+signChallenge(challenge).then(signedChallenge => {
+    getJWT(signedChallenge).then(token => {
+        console.log('Received JWT:', token);
+    });
+});
+```
+### JWT Expiration
+
+The issued JWT has a validity period of 15 minutes from the time of issuance. This means that the token must be used for authentication within this time frame, else it will expire and a new JWT will need to be obtained through the aforementioned process. The expiration time is a security measure to ensure that tokens are used promptly and to minimize the risk associated with compromised or leaked tokens.
+
+The expiration time of a JWT is typically represented by the `exp` claim in the payload section of the token, which is a timestamp indicating the expiration time. The server will check this claim to determine whether the token is still valid.
+
+It's advisable to handle token expiration gracefully in your client application. For instance, you may want to implement logic to request a new token and re-establish the connection if the token expires while the application is running.
+
+### Establishing a connection
+
+To initiate a connection to the Websocket API, employ the command below. Upon connection, API Gateway will trigger a route that captures and records your unique connection ID. The WebSocket connection requires a valid JWT for authentication.
 
 ```javascript
 const socket = new WebSocket('wss://abcdef123.execute-api.us-west-2.amazonaws.com/production');
 
 socket.addEventListener('open', function (event) {
     console.log('Connected');
-    // Prompt the server for the challenge message
-    socket.send(JSON.stringify({ action: "request_challenge" }));
+    // Authenticate the connection using the JWT
+    socket.send(JSON.stringify({ action: "authenticate", token: yourJWTTokenHere }));
 });
 
 socket.addEventListener('message', function (event) {
     console.log('Message from server ', event.data);
-    const data = JSON.parse(event.data);
-
-    if (data.action === "challenge") {
-        const challenge = data.challenge;
-        // Subsequently, sign the challenge and transmit the authentication payload.
-    }
+    // Handle server messages here
 });
 ```
-
-### Authentication with Ethereum Public Key
-
-Upon connection, a challenge message will be dispatched to you. This challenge necessitates being signed with your Ethereum private key, confirming the ownership of the associated Ethereum address.
-
-On obtaining the challenge:
-
-1. Sign it employing your Ethereum wallet.
-2. Return the signed challenge along with your Ethereum public key to the server via the WebSocket connection.
-
-```javascript
-const web3 = new Web3(/* Your web3 provider here */);
-const challenge = "ReceivedChallengeFromServer";  // Swap with the actual received challenge
-
-web3.eth.personal.sign(challenge, null, (error, signature) => {
-    if (!error) {
-        const authPayload = {
-            action: "authenticate",
-            signature: signature
-        };
-
-        socket.send(JSON.stringify(authPayload));
-    } else {
-        console.error("Error signing the challenge:", error);
-        // If there's an error in the signing process, close the connection
-        socket.close();
-    }
-});
-```
-
-### Connection Timeout
-
-It's imperative to respond to the challenge within a stipulated time frame to ensure prompt authentication. A 1-minute window is provided post the challenge issuance. If the authentication payload (signed message and public key) isn't received within this span, the server will terminate the connection.
+In the code snippet above, replace ```yourJWTTokenHere``` with the JWT token obtained from the REST API in the previous steps.
 
 
 ## Submitting Requests to the Orderbook
