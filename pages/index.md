@@ -440,3 +440,36 @@ Each order object in the `orders` array has the following structure:
   ]
 }
 ```
+
+## Clearing the Orderbook
+
+**Note: This functionality is only available to the dev endpoint and is meant only for testing.**
+
+To clear the orderbook, you need to send a request to the server. The server will then respond, confirming the action.
+
+#### Request Payload
+
+ Field                         |  Type     | Description                                                                                     
+-------------------------------|---------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------:
+ `action`                      | `string` | The action to be performed, "clearOrderbook". 
+
+#### Response Payload
+
+ Field                         |  Type     | Description                                                                                     
+-------------------------------|---------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------:
+ `result`                      | `string` | The result of the request, "Orderbook cleared". 
+
+#### Example Request Payload
+
+```javascript
+{
+  "action": "clearOrderbook"
+}
+```
+#### Example Response Payload
+
+```javascript
+{
+  "result": "Orderbook cleared"
+}
+```
